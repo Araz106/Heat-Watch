@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<meta name="theme-color" content="#12161B">
+<title>Heat Watch — Underground Thermal PLOD</title>
+<style>
+  :root{
+    --bg:#12161B;
+    --panel:#1B2128;
+    --panel-2:#212832;
+    --border:#2A323C;
+    --text:#ECEEF1;
+    --text-dim:#8B96A3;
+    --accent:#F2A93B;
+    --accent-dim:#8A6423;
+    --danger:#E4553D;
+    --ok:#4CAF6D;
+    --zone-white:#F2F0E9;
+    --zone-green:#3FA866;
+    --zone-yellow:#E8C547;
+    --zone-red:#E4553D;
+    --radius:10px;
+    font-size:16px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    -webkit-tap-highlight-color:transparent;}
+  body{padding-bottom:40px;}
+
+  header.top{
+    position:sticky;top:0;z-index:20;
+    background:linear-gradient(180deg,#161B21 0%, #12161B 100%);
+    border-bottom:1px solid var(--border);
+    padding:14px 16px 10px;
+  }
+  .brandrow{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+  .brand{display:flex;align-items:center;gap:10px;}
+  .brand .mark{
+    width:34px;height:34px;border-radius:8px;
+    background:radial-gradient(circle at 30% 30%, var(--accent), var(--accent-dim));
+    display:flex;align-items:center;justify-content:center;
+    font-weight:800;color:#1A1200;font-size:16px;flex:none;
+  }
+  .brand h1{
+    font-size:15px;letter-spacing:0.09em;text-transform:uppercase;
+    font-weight:800;margin:0;line-height:1.15;
+  }
+  .brand .sub{font-size:10.5px;color:var(--text-dim);letter-spacing:0.06em;text-transform:uppercase;}
+
+  .status-pill{
+    display:flex;align-items:center;gap:6px;
+    padding:6px 10px;border-radius:999px;
+    font-size:11px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;
+    border:1px solid var(--border);background:var(--panel);white-space:nowrap;
+  }
+  .status-pill .dot{width:8px;height:8px;border-radius:50%;background:var(--text-dim);flex:none;}
+  .status-pill.online .dot{background:var(--ok);box-shadow:0 0 6px var(--ok);}
+  .status-pill.offline .dot{background:var(--danger);box-shadow:0 0 6px var(--danger);}
+  .status-pill.syncing .dot{background:var(--accent);box-shadow:0 0 6px var(--accent);animation:pulse 1s infinite;}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+
+  .pending-row{margin-top:8px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-dim);}
+  .pending-badge{
+    background:var(--accent);color:#1A1200;font-weight:800;
+    border-radius:999px;padding:1px 8px;font-size:11px;
+  }
+  .pending-row button{
+    margin-left:auto;background:none;border:1px solid var(--border);color:var(--accent);
+    padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;letter-spacing:.03em;
+    text-transform:uppercase;cursor:pointer;
+  }
+
+  nav.tabs{
+    display:flex;gap:4px;margin-top:12px;overflow-x:auto;
+    -webkit-overflow-scrolling:touch;padding-bottom:2px;
+  }
+  nav.tabs button{
+    flex:none;background:none;border:none;color:var(--text-dim);
+    font-size:12.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;
+    padding:9px 6px;cursor:pointer;border-bottom:2px solid transparent;
+  }
+  nav.tabs button.active{color:var(--accent);border-bottom-color:var(--accent);}
+
+  main{padding:16px;max-width:720px;margin:0 auto;}
+  section.tab{display:none;}
+  section.tab.active{display:block;}
+
+  .panel{
+    background:var(--panel);border:1px solid var(--border);
+    border-radius:var(--radius);padding:16px;margin-bottom:14px;
+  }
+  .panel h2{
+    font-size:12px;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--text-dim);margin:0 0 12px;font-weight:800;
+  }
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+  @media(max-width:480px){.grid3{grid-template-columns:1fr 1fr;}}
+
+  label{
+    display:block;font-size:11px;font-weight:700;letter-spacing:.04em;
+    text-transform:uppercase;color:var(--text-dim);margin-bottom:5px;
+  }
+  .field{margin-bottom:12px;}
+  input[type=text],input[type=number],input[type=date],input[type=time],
+  select,textarea{
+    width:100%;background:var(--panel-2);border:1px solid var(--border);
+    color:var(--text);border-radius:8px;padding:11px 12px;font-size:15px;
+    font-family:inherit;
+  }
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:1px;}
+  textarea{resize:vertical;min-height:60px;}
+
+  .zone-picker{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;}
+  .zone-btn{
+    border-radius:8px;border:2px solid var(--border);padding:12px 4px;
+    text-align:center;cursor:pointer;font-weight:800;font-size:12px;
+    letter-spacing:.03em;text-transform:uppercase;color:#12161B;
+  }
+  .zone-btn[data-zone="White"]{background:var(--zone-white);}
+  .zone-btn[data-zone="Green"]{background:var(--zone-green);color:#08210F;}
+  .zone-btn[data-zone="Yellow"]{background:var(--zone-yellow);}
+  .zone-btn[data-zone="Red"]{background:var(--zone-red);color:#2A0700;}
+  .zone-btn{opacity:.45;}
+  .zone-btn.selected{opacity:1;border-color:#fff;transform:scale(1.03);}
+  .zone-hint{font-size:11px;color:var(--text-dim);margin-top:6px;line-height:1.4;}
+
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:6px;
+    background:var(--accent);color:#1A1200;border:none;border-radius:8px;
+    padding:13px 18px;font-size:14px;font-weight:800;letter-spacing:.03em;
+    text-transform:uppercase;cursor:pointer;width:100%;
+  }
+  .btn:active{transform:scale(0.98);}
+  .btn.secondary{background:var(--panel-2);color:var(--text);border:1px solid var(--border);}
+  .btn.danger{background:var(--danger);color:#fff;}
+  .btn.small{width:auto;padding:8px 12px;font-size:11px;}
+
+  table{width:100%;border-collapse:collapse;font-size:12.5px;}
+  th,td{padding:8px 6px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;}
+  th{color:var(--text-dim);font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;font-weight:700;}
+  .tablewrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  .zone-chip{
+    display:inline-block;padding:2px 8px;border-radius:999px;font-weight:800;
+    font-size:10.5px;text-transform:uppercase;color:#12161B;
+  }
+  .zone-chip.White{background:var(--zone-white);}
+  .zone-chip.Green{background:var(--zone-green);color:#08210F;}
+  .zone-chip.Yellow{background:var(--zone-yellow);}
+  .zone-chip.Red{background:var(--zone-red);color:#fff;}
+  .sync-flag{font-size:10px;font-weight:700;text-transform:uppercase;}
+  .sync-flag.pending{color:var(--accent);}
+  .sync-flag.synced{color:var(--ok);}
+
+  .empty{color:var(--text-dim);font-size:13px;text-align:center;padding:24px 10px;}
+  .row-actions{display:flex;gap:8px;margin-top:4px;}
+  .entry-item{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:10px 0;border-bottom:1px solid var(--border);
+  }
+  .entry-item:last-child{border-bottom:none;}
+  .entry-main{font-size:13px;}
+  .entry-main b{font-size:14px;}
+  .entry-sub{color:var(--text-dim);font-size:11.5px;margin-top:2px;}
+  .del-btn{background:none;border:none;color:var(--danger);font-size:18px;cursor:pointer;padding:4px 8px;}
+
+  .helptext{font-size:12px;color:var(--text-dim);line-height:1.5;margin-top:4px;}
+  .filter-row{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;}
+  .filter-row input,.filter-row select{width:auto;flex:1;min-width:110px;}
+
+  code{background:var(--panel-2);padding:1px 5px;border-radius:4px;font-size:11px;}
+  .config-warn{
+    background:#3A2410;border:1px solid var(--accent-dim);color:var(--accent);
+    border-radius:8px;padding:10px 12px;font-size:12px;margin-bottom:12px;line-height:1.5;
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="brandrow">
+    <div class="brand">
+      <div class="mark">HW</div>
+      <div>
+        <h1>Heat Watch</h1>
+        <div class="sub">Underground Thermal PLOD</div>
+      </div>
+    </div>
+    <div id="statusPill" class="status-pill offline"><span class="dot"></span><span id="statusText">Offline</span></div>
+  </div>
+  <div class="pending-row" id="pendingRow" style="display:none;">
+    <span id="pendingBadge" class="pending-badge">0</span>
+    <span>entries waiting to sync</span>
+    <button id="manualSyncBtn">Sync now</button>
+  </div>
+  <nav class="tabs">
+    <button class="tab-btn active" data-tab="entry">New Entry</button>
+    <button class="tab-btn" data-tab="mylog">My Log</button>
+    <button class="tab-btn" data-tab="allreports">All Reports</button>
+    <button class="tab-btn" data-tab="settings">Settings</button>
+  </nav>
+</header>
+
+<main>
+
+  <!-- ===================== TAB: NEW ENTRY ===================== -->
+  <section id="tab-entry" class="tab active">
+
+    <div class="panel">
+      <h2>Shift Header</h2>
+      <div class="grid3">
+        <div class="field">
+          <label for="hDate">Date</label>
+          <input type="date" id="hDate">
+        </div>
+        <div class="field">
+          <label for="hSupervisor">Supervisor</label>
+          <input type="text" id="hSupervisor" list="supervisorList" placeholder="Name">
+          <datalist id="supervisorList"></datalist>
+        </div>
+        <div class="field">
+          <label for="hShift">Shift</label>
+          <select id="hShift">
+            <option value="Day">Day</option>
+            <option value="Night">Night</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Reading</h2>
+
+      <div class="grid2">
+        <div class="field">
+          <label for="eTime">Time</label>
+          <input type="time" id="eTime">
+        </div>
+        <div class="field">
+          <label for="eHeading">Heading / Location</label>
+          <input type="text" id="eHeading" list="headingList" placeholder="e.g. 3400L X-cut 2">
+          <datalist id="headingList"></datalist>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="field">
+          <label for="eAirflow">Airflow (m/s)</label>
+          <input type="number" step="0.1" id="eAirflow" placeholder="0.0">
+        </div>
+        <div></div>
+      </div>
+
+      <div class="field">
+        <label>Temperature</label>
+        <div class="grid2">
+          <div>
+            <label for="eWetbulb" style="font-weight:400;text-transform:none;font-size:11px;">Wetbulb (°C)</label>
+            <input type="number" step="0.1" id="eWetbulb" placeholder="0.0">
+          </div>
+          <div>
+            <label for="eDrybulb" style="font-weight:400;text-transform:none;font-size:11px;">Drybulb (°C)</label>
+            <input type="number" step="0.1" id="eDrybulb" placeholder="0.0">
+          </div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>TWL Zone</label>
+        <div class="zone-picker" id="zonePicker">
+          <div class="zone-btn" data-zone="White">White</div>
+          <div class="zone-btn" data-zone="Green">Green</div>
+          <div class="zone-btn" data-zone="Yellow">Yellow</div>
+          <div class="zone-btn" data-zone="Red">Red</div>
+        </div>
+        <div class="zone-hint">White: unrestricted · Green: normal work, self-pacing · Yellow: restrict strenuous work, mandatory breaks · Red: work stop, evacuate heading</div>
+        <div class="zone-hint" id="autoZoneNote" style="margin-top:8px;"></div>
+      </div>
+
+      <div class="field">
+        <label for="eComments">Comments / Activity / Other Factors</label>
+        <textarea id="eComments" placeholder="e.g. broken vent duct, drilling active, refuge chamber checked..."></textarea>
+      </div>
+
+      <button class="btn" id="addEntryBtn">+ Add Reading</button>
+    </div>
+
+    <div class="panel" id="sessionPanel">
+      <h2>Readings logged this session</h2>
+      <div id="sessionList"><div class="empty">No readings added yet.</div></div>
+    </div>
+
+  </section>
+
+  <!-- ===================== TAB: MY LOG ===================== -->
+  <section id="tab-mylog" class="tab">
+    <div class="panel">
+      <h2>My Local Entries</h2>
+      <div class="filter-row">
+        <input type="date" id="mylogDateFilter">
+        <select id="mylogSyncFilter">
+          <option value="all">All</option>
+          <option value="pending">Pending sync</option>
+          <option value="synced">Synced</option>
+        </select>
+        <button class="btn small secondary" id="mylogClearFilter">Clear</button>
+      </div>
+      <div class="tablewrap">
+        <table id="mylogTable">
+          <thead><tr>
+            <th>Date</th><th>Shift</th><th>Time</th><th>Heading</th><th>Airflow</th>
+            <th>WB/DB</th><th>Zone</th><th>Sup.</th><th>Sync</th><th></th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div id="mylogEmpty" class="empty" style="display:none;">No local entries yet — add readings from the New Entry tab.</div>
+      <button class="btn secondary" id="exportCsvBtn" style="margin-top:12px;">Export CSV (filtered view)</button>
+    </div>
+  </section>
+
+  <!-- ===================== TAB: ALL REPORTS ===================== -->
+  <section id="tab-allreports" class="tab">
+    <div class="panel">
+      <h2>All Reports (Synced, All Supervisors)</h2>
+      <div class="helptext" id="allReportsMeta">Connect to the internet to pull the latest entries from every device.</div>
+      <div class="filter-row" style="margin-top:10px;">
+        <input type="date" id="allDateFilter">
+        <input type="text" id="allHeadingFilter" placeholder="Filter by heading...">
+        <select id="allZoneFilter">
+          <option value="all">All zones</option>
+          <option value="White">White</option>
+          <option value="Green">Green</option>
+          <option value="Yellow">Yellow</option>
+          <option value="Red">Red</option>
+        </select>
+      </div>
+      <div class="tablewrap">
+        <table id="allReportsTable">
+          <thead><tr>
+            <th>Date</th><th>Shift</th><th>Time</th><th>Heading</th><th>Airflow</th>
+            <th>WB/DB</th><th>Zone</th><th>Supervisor</th><th>Comments</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div id="allReportsEmpty" class="empty" style="display:none;">No synced reports found yet.</div>
+    </div>
+  </section>
+
+  <!-- ===================== TAB: SETTINGS ===================== -->
+  <section id="tab-settings" class="tab">
+    <div class="panel">
+      <h2>Connection</h2>
+      <div id="firebaseWarn" class="config-warn" style="display:none;">
+        Firebase is not configured yet. Entries will still save offline on this device,
+        but nothing will sync across devices until a Firebase project is connected.
+        See setup notes below.
+      </div>
+      <div class="helptext" id="firebaseOkMsg" style="display:none;">Firebase connected. Entries sync automatically whenever you're online.</div>
+      <button class="btn secondary" id="settingsSyncBtn" style="margin-top:10px;">Force sync now</button>
+    </div>
+
+    <div class="panel">
+      <h2>Auto TWL Zone Calibration</h2>
+      <div class="helptext">
+        The zone auto-suggests from wetbulb + drybulb + airflow using an approximate WBGT-style formula
+        (no globe temperature is collected, so this is an estimate, not a certified TWL reading — always
+        confirm against your site's actual TWL chart or instrument, especially near the Yellow/Red boundary).
+      </div>
+      <div class="grid3" style="margin-top:10px;">
+        <div class="field">
+          <label for="thWhiteGreen">White/Green at (°C)</label>
+          <input type="number" step="0.5" id="thWhiteGreen">
+        </div>
+        <div class="field">
+          <label for="thGreenYellow">Green/Yellow at (°C)</label>
+          <input type="number" step="0.5" id="thGreenYellow">
+        </div>
+        <div class="field">
+          <label for="thYellowRed">Yellow/Red at (°C)</label>
+          <input type="number" step="0.5" id="thYellowRed">
+        </div>
+      </div>
+      <button class="btn secondary" id="saveThresholdsBtn">Save calibration</button>
+    </div>
+
+    <div class="panel">
+      <h2>Default Name</h2>
+      <div class="field">
+        <label for="defaultSupervisor">Your name (autofills Supervisor field)</label>
+        <input type="text" id="defaultSupervisor" placeholder="e.g. A. Yahaya">
+      </div>
+      <button class="btn secondary" id="saveNameBtn">Save</button>
+    </div>
+
+    <div class="panel">
+      <h2>Local Data</h2>
+      <div class="helptext" id="storageInfo">0 entries stored on this device.</div>
+      <button class="btn danger" id="clearLocalBtn" style="margin-top:10px;">Clear all local entries</button>
+      <div class="helptext" style="margin-top:8px;">This only clears this device's local copy. It does not delete anything already synced to the shared database.</div>
+    </div>
+
+    <div class="panel">
+      <h2>Setup Notes (for admin)</h2>
+      <div class="helptext">
+        This is wired to its own dedicated <b>Heat Watch</b> Firebase project (Realtime Database),
+        under the <code>plod_entries</code> node.<br><br>
+        Rules (already set): <code>{ "rules": { "plod_entries": { ".read": true, ".write": true } } }</code>
+        (tighten with auth later if this grows beyond a trusted crew)<br><br>
+        Host this single file (plus <code>sw.js</code> in the same folder) on GitHub Pages. Every device that opens
+        the page can log offline; it syncs to the shared <code>plod_entries</code> node once online.
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- Firebase (loaded from CDN — only needed once online; app still works offline without it) -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<script>
+/* ============================================================
+   HEAT WATCH — Underground Thermal PLOD
+   Offline-first heat monitoring log with Firebase Realtime Database sync
+   ============================================================ */
+
+// ---- 1. FIREBASE CONFIG ----
+const firebaseConfig = {
+  apiKey: "AIzaSyBDFnz9_0dN7oB6lTM70crWp3azbiF662M",
+  authDomain: "heat-watch-5747a.firebaseapp.com",
+  databaseURL: "https://heat-watch-5747a-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "heat-watch-5747a",
+  storageBucket: "heat-watch-5747a.firebasestorage.app",
+  messagingSenderId: "234126127952",
+  appId: "1:234126127952:web:bb46825216e531cefcf255"
+};
+
+let db = null;
+let firebaseReady = false;
+try {
+  if (firebaseConfig.apiKey !== "REPLACE_ME" && typeof firebase !== "undefined") {
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.database();
+    firebaseReady = true;
+  }
+} catch (e) {
+  console.warn("Firebase init failed, running in offline-only mode.", e);
+  firebaseReady = false;
+}
+
+// ---- 2. LOCAL STORAGE HELPERS ----
+const LS_ENTRIES = "hw_entries_v1";
+const LS_ALL_CACHE = "hw_all_reports_cache_v1";
+const LS_NAME = "hw_default_name_v1";
+const LS_HEADINGS = "hw_known_headings_v1";
+const LS_SUPS = "hw_known_supervisors_v1";
+const LS_THRESHOLDS = "hw_zone_thresholds_v1";
+const DEFAULT_THRESHOLDS = { whiteGreen: 28, greenYellow: 30, yellowRed: 32 };
+
+function loadThresholds(){
+  try {
+    const t = JSON.parse(localStorage.getItem(LS_THRESHOLDS));
+    return t ? { ...DEFAULT_THRESHOLDS, ...t } : { ...DEFAULT_THRESHOLDS };
+  } catch(e){ return { ...DEFAULT_THRESHOLDS }; }
+}
+function saveThresholds(t){
+  localStorage.setItem(LS_THRESHOLDS, JSON.stringify(t));
+}
+const DEVICE_ID = getOrCreateDeviceId();
+
+function getOrCreateDeviceId(){
+  let id = localStorage.getItem("hw_device_id");
+  if(!id){
+    id = "dev_" + Math.random().toString(36).slice(2,10);
+    localStorage.setItem("hw_device_id", id);
+  }
+  return id;
+}
+function loadEntries(){
+  try { return JSON.parse(localStorage.getItem(LS_ENTRIES)) || []; }
+  catch(e){ return []; }
+}
+function saveEntries(list){
+  localStorage.setItem(LS_ENTRIES, JSON.stringify(list));
+}
+function loadAllCache(){
+  try { return JSON.parse(localStorage.getItem(LS_ALL_CACHE)) || { entries: [], fetchedAt: null }; }
+  catch(e){ return { entries: [], fetchedAt: null }; }
+}
+function saveAllCache(entries){
+  localStorage.setItem(LS_ALL_CACHE, JSON.stringify({ entries, fetchedAt: new Date().toISOString() }));
+}
+function rememberValue(key, value){
+  if(!value) return;
+  let arr = JSON.parse(localStorage.getItem(key) || "[]");
+  if(!arr.includes(value)){
+    arr.unshift(value);
+    arr = arr.slice(0,25);
+    localStorage.setItem(key, JSON.stringify(arr));
+  }
+}
+function loadRemembered(key){
+  try { return JSON.parse(localStorage.getItem(key)) || []; }
+  catch(e){ return []; }
+}
+
+// ---- 3. STATE ----
+let entries = loadEntries();
+let selectedZone = null;
+
+// ---- 4. TAB NAVIGATION ----
+document.querySelectorAll(".tab-btn").forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    document.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active"));
+    document.querySelectorAll("section.tab").forEach(s=>s.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById("tab-"+btn.dataset.tab).classList.add("active");
+    if(btn.dataset.tab === "mylog") renderMyLog();
+    if(btn.dataset.tab === "allreports") renderAllReports();
+    if(btn.dataset.tab === "settings") renderSettings();
+  });
+});
+
+// ---- 5. ZONE PICKER ----
+let zoneManuallyOverridden = false;
+
+document.querySelectorAll(".zone-btn").forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    document.querySelectorAll(".zone-btn").forEach(b=>b.classList.remove("selected"));
+    btn.classList.add("selected");
+    selectedZone = btn.dataset.zone;
+    zoneManuallyOverridden = true;
+    document.getElementById("autoZoneNote").textContent = "Zone set manually.";
+  });
+});
+
+// Approximate WBGT-style estimate from wetbulb + drybulb, adjusted for airflow.
+// This is NOT a certified TWL reading (no globe/radiant temperature is captured) —
+// it is a fast-estimate aid only, always tap to override with the actual site chart or instrument.
+function estimateZone(wb, db, af){
+  if(wb === null || wb === "" || isNaN(wb)) return null;
+  const dbVal = (db === null || db === "" || isNaN(db)) ? wb : Number(db);
+  let est = 0.7 * Number(wb) + 0.3 * dbVal;
+
+  const afVal = (af === null || af === "" || isNaN(af)) ? null : Number(af);
+  if(afVal !== null){
+    if(afVal >= 2.5) est -= 1.5;
+    else if(afVal >= 1.5) est -= 0.7;
+    else if(afVal < 0.5) est += 1.0;
+  }
+
+  const t = loadThresholds();
+  let zone;
+  if(est < t.whiteGreen) zone = "White";
+  else if(est < t.greenYellow) zone = "Green";
+  else if(est < t.yellowRed) zone = "Yellow";
+  else zone = "Red";
+
+  return { zone, est: Math.round(est*10)/10 };
+}
+
+function updateAutoZone(){
+  if(zoneManuallyOverridden) return; // respect manual choice until fields change again meaningfully
+  const wb = document.getElementById("eWetbulb").value;
+  const db = document.getElementById("eDrybulb").value;
+  const af = document.getElementById("eAirflow").value;
+  const result = estimateZone(wb, db, af);
+  const note = document.getElementById("autoZoneNote");
+  if(!result){
+    note.textContent = "";
+    return;
+  }
+  document.querySelectorAll(".zone-btn").forEach(b=>{
+    b.classList.toggle("selected", b.dataset.zone === result.zone);
+  });
+  selectedZone = result.zone;
+  note.textContent = `Auto-suggested from readings (~${result.est}°C effective) — tap a zone to override.`;
+}
+
+["eWetbulb","eDrybulb","eAirflow"].forEach(id=>{
+  document.getElementById(id).addEventListener("input", ()=>{
+    zoneManuallyOverridden = false; // new readings supersede a stale manual pick
+    updateAutoZone();
+  });
+});
+
+// ---- 6. DEFAULTS ON LOAD ----
+function todayStr(){
+  const d = new Date();
+  return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+}
+function nowTimeStr(){
+  const d = new Date();
+  return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");
+}
+document.getElementById("hDate").value = todayStr();
+document.getElementById("eTime").value = nowTimeStr();
+const savedName = localStorage.getItem(LS_NAME);
+if(savedName) document.getElementById("hSupervisor").value = savedName;
+document.getElementById("defaultSupervisor").value = savedName || "";
+
+function refreshDatalists(){
+  const headingList = document.getElementById("headingList");
+  headingList.innerHTML = loadRemembered(LS_HEADINGS).map(h=>`<option value="${escapeHtml(h)}">`).join("");
+  const supList = document.getElementById("supervisorList");
+  supList.innerHTML = loadRemembered(LS_SUPS).map(s=>`<option value="${escapeHtml(s)}">`).join("");
+}
+refreshDatalists();
+
+// ---- 7. ADD ENTRY ----
+document.getElementById("addEntryBtn").addEventListener("click", ()=>{
+  const date = document.getElementById("hDate").value;
+  const supervisor = document.getElementById("hSupervisor").value.trim();
+  const shift = document.getElementById("hShift").value;
+  const time = document.getElementById("eTime").value;
+  const heading = document.getElementById("eHeading").value.trim();
+  const airflow = document.getElementById("eAirflow").value;
+  const wetbulb = document.getElementById("eWetbulb").value;
+  const drybulb = document.getElementById("eDrybulb").value;
+  const comments = document.getElementById("eComments").value.trim();
+
+  if(!date || !supervisor || !time || !heading || !selectedZone){
+    alert("Please fill Date, Supervisor, Time, Heading and select a TWL Zone before adding a reading.");
+    return;
+  }
+
+  const entry = {
+    id: DEVICE_ID + "_" + Date.now() + "_" + Math.random().toString(36).slice(2,6),
+    date, supervisor, shift, time, heading,
+    airflow: airflow === "" ? null : Number(airflow),
+    wetbulb: wetbulb === "" ? null : Number(wetbulb),
+    drybulb: drybulb === "" ? null : Number(drybulb),
+    twlZone: selectedZone,
+    comments,
+    deviceId: DEVICE_ID,
+    createdAt: new Date().toISOString(),
+    synced: false
+  };
+
+  entries.unshift(entry);
+  saveEntries(entries);
+  rememberValue(LS_HEADINGS, heading);
+  rememberValue(LS_SUPS, supervisor);
+  localStorage.setItem(LS_NAME, supervisor);
+  refreshDatalists();
+
+  // reset reading fields only (keep header + advance time)
+  document.getElementById("eTime").value = nowTimeStr();
+  document.getElementById("eHeading").value = "";
+  document.getElementById("eAirflow").value = "";
+  document.getElementById("eWetbulb").value = "";
+  document.getElementById("eDrybulb").value = "";
+  document.getElementById("eComments").value = "";
+  document.querySelectorAll(".zone-btn").forEach(b=>b.classList.remove("selected"));
+  selectedZone = null;
+  zoneManuallyOverridden = false;
+  document.getElementById("autoZoneNote").textContent = "";
+
+  renderSessionList();
+  updatePendingUI();
+  attemptSync();
+});
+
+function renderSessionList(){
+  const container = document.getElementById("sessionList");
+  const today = document.getElementById("hDate").value;
+  const sessionEntries = entries.filter(e=>e.deviceId===DEVICE_ID && e.date===today);
+  if(sessionEntries.length === 0){
+    container.innerHTML = `<div class="empty">No readings added yet.</div>`;
+    return;
+  }
+  container.innerHTML = sessionEntries.map(e=>`
+    <div class="entry-item" data-id="${e.id}">
+      <div class="entry-main">
+        <b>${escapeHtml(e.time)} · ${escapeHtml(e.heading)}</b>
+        <span class="zone-chip ${e.twlZone}">${e.twlZone}</span>
+        <div class="entry-sub">WB ${fmtNum(e.wetbulb)}° / DB ${fmtNum(e.drybulb)}° · Airflow ${fmtNum(e.airflow)} m/s
+          ${e.comments ? " · " + escapeHtml(e.comments) : ""}</div>
+      </div>
+      <button class="del-btn" onclick="deleteEntry('${e.id}')">&times;</button>
+    </div>
+  `).join("");
+}
+function deleteEntry(id){
+  if(!confirm("Remove this reading?")) return;
+  entries = entries.filter(e=>e.id!==id);
+  saveEntries(entries);
+  renderSessionList();
+  renderMyLog();
+  updatePendingUI();
+}
+function fmtNum(n){ return (n===null || n===undefined || n==="") ? "—" : n; }
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+document.getElementById("hDate").addEventListener("change", renderSessionList);
+renderSessionList();
+
+// ---- 8. MY LOG TAB ----
+function renderMyLog(){
+  const dateFilter = document.getElementById("mylogDateFilter").value;
+  const syncFilter = document.getElementById("mylogSyncFilter").value;
+  let list = entries.filter(e=>e.deviceId===DEVICE_ID);
+  if(dateFilter) list = list.filter(e=>e.date===dateFilter);
+  if(syncFilter==="pending") list = list.filter(e=>!e.synced);
+  if(syncFilter==="synced") list = list.filter(e=>e.synced);
+
+  const tbody = document.querySelector("#mylogTable tbody");
+  const emptyEl = document.getElementById("mylogEmpty");
+  if(list.length===0){
+    tbody.innerHTML = "";
+    emptyEl.style.display = "block";
+    document.getElementById("mylogTable").style.display = "none";
+    return;
+  }
+  emptyEl.style.display = "none";
+  document.getElementById("mylogTable").style.display = "table";
+
+  tbody.innerHTML = list.map(e=>`
+    <tr>
+      <td>${escapeHtml(e.date)}</td>
+      <td>${escapeHtml(e.shift)}</td>
+      <td>${escapeHtml(e.time)}</td>
+      <td>${escapeHtml(e.heading)}</td>
+      <td>${fmtNum(e.airflow)}</td>
+      <td>${fmtNum(e.wetbulb)}/${fmtNum(e.drybulb)}</td>
+      <td><span class="zone-chip ${e.twlZone}">${e.twlZone}</span></td>
+      <td>${escapeHtml(e.supervisor)}</td>
+      <td><span class="sync-flag ${e.synced ? "synced":"pending"}">${e.synced ? "Synced":"Pending"}</span></td>
+      <td><button class="del-btn" onclick="deleteEntry('${e.id}')">&times;</button></td>
+    </tr>
+  `).join("");
+}
+document.getElementById("mylogDateFilter").addEventListener("change", renderMyLog);
+document.getElementById("mylogSyncFilter").addEventListener("change", renderMyLog);
+document.getElementById("mylogClearFilter").addEventListener("click", ()=>{
+  document.getElementById("mylogDateFilter").value = "";
+  document.getElementById("mylogSyncFilter").value = "all";
+  renderMyLog();
+});
+
+document.getElementById("exportCsvBtn").addEventListener("click", ()=>{
+  const dateFilter = document.getElementById("mylogDateFilter").value;
+  const syncFilter = document.getElementById("mylogSyncFilter").value;
+  let list = entries.filter(e=>e.deviceId===DEVICE_ID);
+  if(dateFilter) list = list.filter(e=>e.date===dateFilter);
+  if(syncFilter==="pending") list = list.filter(e=>!e.synced);
+  if(syncFilter==="synced") list = list.filter(e=>e.synced);
+
+  const headers = ["Date","Supervisor","Shift","Time","Heading","Airflow(m/s)","Wetbulb(C)","Drybulb(C)","TWL Zone","Comments"];
+  const rows = list.map(e=>[e.date,e.supervisor,e.shift,e.time,e.heading,e.airflow,e.wetbulb,e.drybulb,e.twlZone,
+    (e.comments||"").replace(/"/g,'""')]);
+  let csv = headers.join(",") + "\n";
+  csv += rows.map(r=>r.map(v=>`"${v===null||v===undefined?"":v}"`).join(",")).join("\n");
+
+  const blob = new Blob([csv], {type:"text/csv"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `heat_watch_log_${dateFilter||"all"}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+// ---- 9. ALL REPORTS TAB ----
+let allReportsUnsub = null;
+
+function renderAllReports(){
+  const cache = loadAllCache();
+  applyAllReportsFilters(cache.entries);
+  const metaEl = document.getElementById("allReportsMeta");
+  if(cache.fetchedAt){
+    metaEl.textContent = navigator.onLine
+      ? "Live — last updated " + new Date(cache.fetchedAt).toLocaleString()
+      : "Offline — showing cached data from " + new Date(cache.fetchedAt).toLocaleString();
+  } else {
+    metaEl.textContent = navigator.onLine
+      ? "Connecting to shared database..."
+      : "Offline — connect to the internet to pull entries from other supervisors.";
+  }
+
+  if(navigator.onLine && firebaseReady && !allReportsUnsub){
+    try{
+      const ref = db.ref("plod_entries");
+      const listener = ref.on("value", snapshot=>{
+        const val = snapshot.val() || {};
+        const all = Object.values(val).sort((a,b)=>{
+          const da = (a.date||"") + " " + (a.time||"");
+          const db_ = (b.date||"") + " " + (b.time||"");
+          return db_.localeCompare(da);
+        });
+        saveAllCache(all);
+        applyAllReportsFilters(all);
+        document.getElementById("allReportsMeta").textContent =
+          "Live — last updated " + new Date().toLocaleString();
+      }, err=>{
+        console.warn("All reports listener error", err);
+      });
+      allReportsUnsub = { ref, listener };
+    } catch(e){ console.warn(e); }
+  }
+}
+
+function applyAllReportsFilters(list){
+  const dateFilter = document.getElementById("allDateFilter").value;
+  const headingFilter = document.getElementById("allHeadingFilter").value.trim().toLowerCase();
+  const zoneFilter = document.getElementById("allZoneFilter").value;
+
+  let filtered = list.slice();
+  if(dateFilter) filtered = filtered.filter(e=>e.date===dateFilter);
+  if(headingFilter) filtered = filtered.filter(e=>(e.heading||"").toLowerCase().includes(headingFilter));
+  if(zoneFilter!=="all") filtered = filtered.filter(e=>e.twlZone===zoneFilter);
+
+  const tbody = document.querySelector("#allReportsTable tbody");
+  const emptyEl = document.getElementById("allReportsEmpty");
+  if(filtered.length===0){
+    tbody.innerHTML = "";
+    emptyEl.style.display="block";
+    document.getElementById("allReportsTable").style.display="none";
+    return;
+  }
+  emptyEl.style.display="none";
+  document.getElementById("allReportsTable").style.display="table";
+
+  tbody.innerHTML = filtered.map(e=>`
+    <tr>
+      <td>${escapeHtml(e.date)}</td>
+      <td>${escapeHtml(e.shift)}</td>
+      <td>${escapeHtml(e.time)}</td>
+      <td>${escapeHtml(e.heading)}</td>
+      <td>${fmtNum(e.airflow)}</td>
+      <td>${fmtNum(e.wetbulb)}/${fmtNum(e.drybulb)}</td>
+      <td><span class="zone-chip ${e.twlZone}">${e.twlZone}</span></td>
+      <td>${escapeHtml(e.supervisor)}</td>
+      <td>${escapeHtml(e.comments||"")}</td>
+    </tr>
+  `).join("");
+}
+document.getElementById("allDateFilter").addEventListener("change", ()=>applyAllReportsFilters(loadAllCache().entries));
+document.getElementById("allHeadingFilter").addEventListener("input", ()=>applyAllReportsFilters(loadAllCache().entries));
+document.getElementById("allZoneFilter").addEventListener("change", ()=>applyAllReportsFilters(loadAllCache().entries));
+
+// ---- 10. SETTINGS TAB ----
+function renderSettings(){
+  document.getElementById("firebaseWarn").style.display = firebaseReady ? "none" : "block";
+  document.getElementById("firebaseOkMsg").style.display = firebaseReady ? "block" : "none";
+  const mine = entries.filter(e=>e.deviceId===DEVICE_ID);
+  const pending = mine.filter(e=>!e.synced).length;
+  document.getElementById("storageInfo").textContent =
+    `${mine.length} entries stored on this device (${pending} pending sync).`;
+
+  const t = loadThresholds();
+  document.getElementById("thWhiteGreen").value = t.whiteGreen;
+  document.getElementById("thGreenYellow").value = t.greenYellow;
+  document.getElementById("thYellowRed").value = t.yellowRed;
+}
+document.getElementById("saveThresholdsBtn").addEventListener("click", ()=>{
+  const wg = Number(document.getElementById("thWhiteGreen").value);
+  const gy = Number(document.getElementById("thGreenYellow").value);
+  const yr = Number(document.getElementById("thYellowRed").value);
+  if(isNaN(wg) || isNaN(gy) || isNaN(yr) || !(wg < gy && gy < yr)){
+    alert("Thresholds must be numbers in increasing order (White/Green < Green/Yellow < Yellow/Red).");
+    return;
+  }
+  saveThresholds({ whiteGreen: wg, greenYellow: gy, yellowRed: yr });
+  alert("Calibration saved. New readings will use the updated thresholds.");
+});
+document.getElementById("saveNameBtn").addEventListener("click", ()=>{
+  const name = document.getElementById("defaultSupervisor").value.trim();
+  localStorage.setItem(LS_NAME, name);
+  document.getElementById("hSupervisor").value = name;
+  alert("Saved.");
+});
+document.getElementById("clearLocalBtn").addEventListener("click", ()=>{
+  if(!confirm("This deletes all locally stored entries on this device, including anything not yet synced. Continue?")) return;
+  entries = entries.filter(e=>e.deviceId!==DEVICE_ID);
+  saveEntries(entries);
+  renderSessionList();
+  renderMyLog();
+  renderSettings();
+  updatePendingUI();
+});
+document.getElementById("settingsSyncBtn").addEventListener("click", attemptSync);
+
+// ---- 11. SYNC ENGINE ----
+function updatePendingUI(){
+  const pending = entries.filter(e=>e.deviceId===DEVICE_ID && !e.synced).length;
+  const row = document.getElementById("pendingRow");
+  if(pending>0){
+    row.style.display="flex";
+    document.getElementById("pendingBadge").textContent = pending;
+  } else {
+    row.style.display="none";
+  }
+}
+
+function setStatusPill(state){
+  const pill = document.getElementById("statusPill");
+  const text = document.getElementById("statusText");
+  pill.className = "status-pill " + state;
+  if(state==="online") text.textContent = "Online";
+  if(state==="offline") text.textContent = "Offline";
+  if(state==="syncing") text.textContent = "Syncing...";
+}
+
+async function attemptSync(){
+  if(!navigator.onLine){ setStatusPill("offline"); return; }
+  if(!firebaseReady){ setStatusPill("online"); return; }
+
+  const pending = entries.filter(e=>e.deviceId===DEVICE_ID && !e.synced);
+  if(pending.length===0){ setStatusPill("online"); return; }
+
+  setStatusPill("syncing");
+  let successCount = 0;
+  for(const entry of pending){
+    try{
+      await db.ref("plod_entries/" + entry.id).set({
+        ...entry, synced: true, syncedAt: new Date().toISOString()
+      });
+      const idx = entries.findIndex(e=>e.id===entry.id);
+      if(idx>-1){ entries[idx].synced = true; entries[idx].syncedAt = new Date().toISOString(); }
+      successCount++;
+    } catch(e){
+      console.warn("Sync failed for entry", entry.id, e);
+    }
+  }
+  saveEntries(entries);
+  updatePendingUI();
+  renderMyLog();
+  renderSettings();
+  setStatusPill(navigator.onLine ? "online" : "offline");
+}
+
+window.addEventListener("online", ()=>{
+  setStatusPill("online");
+  attemptSync();
+  if(document.getElementById("tab-allreports").classList.contains("active")) renderAllReports();
+});
+window.addEventListener("offline", ()=>{
+  setStatusPill("offline");
+});
+document.getElementById("manualSyncBtn").addEventListener("click", attemptSync);
+
+// ---- 12. INIT ----
+setStatusPill(navigator.onLine ? "online" : "offline");
+updatePendingUI();
+renderSettings();
+if(navigator.onLine) attemptSync();
+
+if("serviceWorker" in navigator){
+  window.addEventListener("load", ()=>{
+    navigator.serviceWorker.register("./sw.js").catch(e=>console.warn("SW registration failed", e));
+  });
+}
+
+</script>
+</body>
+</html>
